@@ -242,7 +242,7 @@ if [[ $1 == 'update' ]]; then
         #update main files via git
         #the /ea02c68f0b34aa4 path needs to be updated if production repo is named something else
         cd /home/savvy/ea02c68f0b34aa4
-        git pull >> /home/savvy/ea02c68f0b34aa4/update_record
+        git pull >> /home/savvy/update_record
     TAG=$(git tag | tail -n 1)
     if [[ $(grep Release /home/savvy/device_info | awk '{print $2}' FS=': ') != $TAG ]]; then
         sed -i "/Release/cRelease tag: $TAG" /home/savvy/device_info
@@ -262,7 +262,7 @@ if [[ $1 == 'update' ]]; then
     
         if [[ "$FILESDIFFERENT" ]]; then
             #update log file
-            echo "Github update at $(date)" >> /home/savvy/ea02c68f0b34aa4/update_record
+            echo "Github update at $(date)" >> /home/savvy/update_record
         fi
     fi
     #END OF GIT UPDATE
