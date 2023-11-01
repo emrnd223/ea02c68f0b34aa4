@@ -262,7 +262,7 @@ if [[ $1 == 'update' ]]; then
     
         if [[ "$FILESDIFFERENT" ]]; then
             #update log file
-            echo "Github update at $(date)" >> /home/savvy/update_record
+            echo "Git update at $(date)" >> /home/savvy/update_record
         fi
     fi
     #END OF GIT UPDATE
