@@ -179,7 +179,7 @@ if [[ $1 == 'update' ]]; then
     
     if [ -f $3$1 ]; then
         if [ -f $4$1 ]; then
-            #if file exists in file system, compare it with usb
+            #if both files exist, compare them
             FILECMP=$(cmp $3$1 $4$1 2>&1)
         else
             FILECMP="no file on system"
@@ -189,9 +189,7 @@ if [[ $1 == 'update' ]]; then
             FILESDIFFERENT=TRUE
             if [ -f $4$1 ]; then
                 echo "backing up $1"
-                mv $4$1 $4$1_old
-                chown root:root $4$1_old
-                chmod 644 $4$1_old
+                mkdir -p /home/savvy/backup/ && mv $4$1 /home/savvy/backup/$1_bak
             fi
             echo "copying $1 from $3"
             cp $3$1 $4$1
@@ -257,7 +255,10 @@ if [[ $1 == 'update' ]]; then
         #update main files via git
         #the /ea02c68f0b34aa4 path needs to be updated if production repo is named something else
         cd /home/savvy/ea02c68f0b34aa4
-        git pull >> /home/savvy/update_record
+        mkdir -p /home/savvy/backup/
+        git pull >> /home/savvy/backup/update_record
+        truncate -s-1 /home/savvy/backup/update_record
+        echo " $(date)" >> /home/savvy/backup/update_record
     TAG=$(git tag | tail -n 1)
     if [[ $(grep Release /home/savvy/device_info | awk '{print $2}' FS=': ') != $TAG ]]; then
         sed -i "/Release/cRelease tag: $TAG" /home/savvy/device_info
@@ -277,7 +278,7 @@ if [[ $1 == 'update' ]]; then
     
         if [[ "$FILESDIFFERENT" ]]; then
             #update log file
-            echo "Git update at $(date)" >> /home/savvy/update_record
+            echo "Git update at $(date)" >> /home/savvy/backup/update_record
         fi
     fi
     #END OF GIT UPDATE

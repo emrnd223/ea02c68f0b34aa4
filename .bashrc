@@ -171,7 +171,7 @@ if [ "$(tty)" == "/dev/tty1" ]; then
 	#trim log files
 	logcleanup /home/savvy/.xsession-errors 1000
 	logcleanup /home/savvy/cron_last_reset 1000
-	logcleanup /home/savvy/update_record 1000
+	logcleanup /home/savvy/backup/update_record 1000
 
 	#run function to prevent firefox hanging
 	nohangfirefox
