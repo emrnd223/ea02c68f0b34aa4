@@ -25,7 +25,7 @@ if [[ $1 == 'startup' ]]; then
     if [[ -s /home/savvy/customer_info ]]; then
         SSID2="$(grep ssid /home/savvy/customer_info | awk -F : '{print $2}')" #customer wifi ssid
         PASS2="$(grep wifiPassword /home/savvy/customer_info | awk -F : '{print $2}')" #customer wifi password
-        if [[ $SSID2 = 'fake' ]]; then
+        if [[ "$SSID2" = 'fake' ]]; then
             SSID2=''
             PASS2=''
         fi
@@ -37,7 +37,7 @@ if [[ $1 == 'startup' ]]; then
     wificleanup () {
         #removes all nmcli wifi connections
         CURWIFI=$(nmcli con show | grep wifi | awk -F "  " '{print $1}' | sed 1q)
-        until [[ $CURWIFI = '' ]]
+        until [[ "$CURWIFI" = '' ]]
         do
             nmcli con delete "$CURWIFI"
             CURWIFI=$(nmcli con show | grep wifi | awk -F "  " '{print $1}' | sed 1q)
@@ -115,7 +115,7 @@ if [[ $1 == 'network_status' ]]; then
         #check that all primary SSIDs are listed by network manager and set them up if not
         if [[ $(nmcli con show | grep "$SSID1") ]]; then
             #check that password is correct
-            if [[ $(nmcli con show "$SSID1" --show-secrets | grep wireless-security.psk: | awk '{print $2}') != "$PASS1" ]]; then
+            if [[ $(nmcli con show "$SSID1" --show-secrets | grep wireless-security.psk: | awk -F : '{print $2}' | sed 's/^ *//') != "$PASS1" ]]; then
                 setupwifi "$SSID1" "$PASS1"
             fi
         else
@@ -123,16 +123,16 @@ if [[ $1 == 'network_status' ]]; then
         fi
 
         if [[ $(nmcli con show | grep "$SSID3") ]]; then
-            if [[ $(nmcli con show "$SSID3" --show-secrets | grep wireless-security.psk: | awk '{print $2}') != "$PASS3" ]]; then
+            if [[ $(nmcli con show "$SSID3" --show-secrets | grep wireless-security.psk: | awk -F : '{print $2}' | sed 's/^ *//') != "$PASS3" ]]; then
                 setupwifi "$SSID3" "$PASS3"
             fi
         else
             setupwifi "$SSID3" "$PASS3"
         fi
 
-        if [[ $SSID2 ]]; then
+        if [[ "$SSID2" ]]; then
             if [[ $(nmcli con show | grep "$SSID2") ]]; then
-                if [[ $(nmcli con show "$SSID2" --show-secrets | grep wireless-security.psk: | awk '{print $2}') != "$PASS2" ]]; then
+                if [[ $(nmcli con show "$SSID2" --show-secrets | grep wireless-security.psk: | awk -F : '{print $2}' | sed 's/^ *//') != "$PASS2" ]]; then
                     setupwifi "$SSID2" "$PASS2"
                 fi
             else
@@ -142,7 +142,7 @@ if [[ $1 == 'network_status' ]]; then
 
         #check if startx didn't launch firefox due to no available network
         if [[ -f /home/savvy/nobrowser ]]; then
-            if [[ $SSID2 ]]; then
+            if [[ "$SSID2" ]]; then
                 #check if SSID2 is broadcasting and visible
                 WIFIVAR=$(nmcli device wifi list | grep "$SSID2")
     
@@ -155,7 +155,7 @@ if [[ $1 == 'network_status' ]]; then
     
             NETWORK=`echo "$(nmcli device | grep 'wifi ' | awk '{print $3}') $(nmcli device | grep ethernet | awk '{print $3}')" | grep -w connected`
                 #if network is now available restart device
-                if [[ $NETWORK ]]; then
+                if [[ "$NETWORK" ]]; then
                     reboot
                 fi
             fi

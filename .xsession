@@ -21,7 +21,7 @@ LOOPS=0
 
 #if there is an available network, wait until it establishes an internet connection
 if [[ "$NETWORK" != '' ]]; then
-	until [[ $INTERNET != '' || $LOOPS > 4 ]]
+	until [[ "$INTERNET" != '' || $LOOPS > 4 ]]
 	do
 		sleep 2
 		LOOPS=$(( $LOOPS+1 ))

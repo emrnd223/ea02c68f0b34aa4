@@ -129,7 +129,7 @@ if [ "$(tty)" == "/dev/tty1" ]; then
 
 		#needs customer url to proceed
 		if [ -s /home/savvy/.url ]; then
-           		nmcli con up "$SSID1"
+           	nmcli con up "$SSID1"
 
 			#remove firstrun file after initial setup is complete
 			rm -f /home/savvy/firstrun
@@ -141,7 +141,7 @@ if [ "$(tty)" == "/dev/tty1" ]; then
         #remove firstrun file after initial setup is complete
 		rm -f /home/savvy/firstrun
 	#if SSID2 is defined
-	elif [[ $SSID2 ]]; then
+	elif [[ "$SSID2" ]]; then
 		nmcli con up "$SSID2" >/dev/null 2>&1
 		#check nmcli response to see if it connected
 		if [[ $? != 0 ]]; then
@@ -156,7 +156,7 @@ if [ "$(tty)" == "/dev/tty1" ]; then
 	NETWORK=`echo "$(nmcli device | grep 'wifi ' | awk '{print $3}') $(nmcli device | grep ethernet | awk '{print $3}')" | grep -w connected`
 	LOOPS=0
 
-	until [[ $NETWORK != '' || $LOOPS > 4 ]]
+	until [[ "$NETWORK" != '' || $LOOPS > 4 ]]
 	do
 		#wait up to 10 seconds before continuing
 		sleep 2
