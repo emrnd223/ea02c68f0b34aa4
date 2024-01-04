@@ -322,7 +322,7 @@ if [[ $1 == 'update' ]]; then
                 if [[ $SLEEPEND && $SLEEPENABLED = 'true' ]]; then
                     #update reboot time
                     sed -i "/root reboot/c`echo $SLEEPENDMIN` `echo $SLEEPENDHOUR` * * * root reboot" /etc/crontab
-                    sed -i "/savvy echo/c`echo $SLEEPENDMIN` `echo $SLEEPENDHOUR` * * * savvy echo \"System reset at \$(date)\" > cron_last_reset" /etc/crontab
+                    sed -i "/savvy echo/c`echo $SLEEPENDMIN` `echo $SLEEPENDHOUR` * * * savvy echo \"System reset at \$(date)\" >> cron_last_reset" /etc/crontab
                     #redefine variables for a git update 10 minutes before reset
                     if [[ $SLEEPENDMIN -lt 10 ]]; then
                         if [[ $SLEEPENDHOUR -gt 0 ]]; then
@@ -356,6 +356,7 @@ if [[ $1 == 'update' ]]; then
 
                     #if sleep is off, set reboot to the default of 1pm local 
                     sed -i "/root reboot/c0 13 * * * root reboot" /etc/crontab
+                    sed -i "/savvy echo/c0 13 * * * savvy echo \"System reset at \$(date)\" >> cron_last_reset" /etc/crontab
                     #update git 10 minutes before reboot
                     sed -i "/update git/c50 12 * * * root /home/savvy/savvy.sh update git" /etc/crontab
                 fi
