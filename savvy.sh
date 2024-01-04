@@ -15,6 +15,13 @@
 #   -end
 
 cd /home/savvy/
+
+#run anything here once at startup
+if [[ -f /home/savvy/runonce ]]; then
+    rm /home/savvy/runonce
+    /home/savvy/savvy.sh update customer
+fi
+
 #STARTUP FUNCTIONS AND VARIABLES DEFINED
 if [[ $1 == 'startup' ]]; then
     #define SSID variables
@@ -210,7 +217,7 @@ if [[ $1 == 'update' ]]; then
             if [ -d /media/savvyUSB ]; then
                 echo "path exists - mounting USB"
             else
-                mkdir /media/savvyUSB
+                mkdir -p /media/savvyUSB
             fi
             mount $DRIVEID /media/savvyUSB
             
@@ -306,16 +313,17 @@ if [[ $1 == 'update' ]]; then
             #if not empty, update screen sleep schedule
             else
                 #define variables
-                SLEEPENABLED=$(grep sleepEnabled /home/savvy/customer_info 2>/dev/null | awk '{print $2}')
-                SLEEPSTART=$(grep sleepStart /home/savvy/customer_info 2>/dev/null | awk '{print $2}')
-                SLEEPEND=$(grep sleepEnd /home/savvy/customer_info 2>/dev/null | awk '{print $2}')
+                SLEEPENABLED=$(grep sleepEnabled /home/savvy/customer_info 2>/dev/null | awk -F : '{print $2}')
+                SLEEPSTART=$(grep sleepStart /home/savvy/customer_info 2>/dev/null | awk -F : '{print $2}')
+                SLEEPEND=$(grep sleepEnd /home/savvy/customer_info 2>/dev/null | awk -F : '{print $2}')
                 SLEEPENDMIN=$(echo $SLEEPEND | cut -c 3-4)
                 SLEEPENDHOUR=$(echo $SLEEPEND | cut -c 1-2)
 
                 if [[ $SLEEPEND && $SLEEPENABLED = 'true' ]]; then
                     #update reboot time
                     sed -i "/root reboot/c`echo $SLEEPENDMIN` `echo $SLEEPENDHOUR` * * * root reboot" /etc/crontab
-                    #redefine variables for a git update 3 minutes before reset
+                    sed -i "/savvy echo/c`echo $SLEEPENDMIN` `echo $SLEEPENDHOUR` * * * savvy echo \"System reset at \$(date)\" > cron_last_reset" /etc/crontab
+                    #redefine variables for a git update 10 minutes before reset
                     if [[ $SLEEPENDMIN -lt 10 ]]; then
                         if [[ $SLEEPENDHOUR -gt 0 ]]; then
                             SLEEPENDHOUR=$(($SLEEPENDHOUR-1))
@@ -332,7 +340,7 @@ if [[ $1 == 'update' ]]; then
                 if [[ $SLEEPSTART ]]; then
                     #if sleep start hasn't been set up in crontab, set it up
                     if [[ ! $(sed -n '/sleep start/p' /etc/crontab) ]]; then
-                        sed -i "/customer/a`echo $SLEEPSTART | cut -c 3-4` `echo $SLEEPSTART | cut -c 1-2` * * * savvy /home/savvy/savvy.sh sleep start" /etc/crontab
+                        sed -i "/provision/a`echo $SLEEPSTART | cut -c 3-4` `echo $SLEEPSTART | cut -c 1-2` * * * savvy /home/savvy/savvy.sh sleep start" /etc/crontab
                     #if sleep start already exists in crontab, update it
                     else
                         sed -i "/sleep start/c`echo $SLEEPSTART | cut -c 3-4` `echo $SLEEPSTART | cut -c 1-2` * * * savvy /home/savvy/savvy.sh sleep start" /etc/crontab
@@ -346,10 +354,10 @@ if [[ $1 == 'update' ]]; then
                     #sleep disabled-comment it out in crontab
                     sed -i '/sleep/s/^/#/' /etc/crontab
 
-                    #if sleep is off, set reboot to the default of 2am local 
-                    sed -i "/root reboot/c0 2 * * * root reboot" /etc/crontab
+                    #if sleep is off, set reboot to the default of 1pm local 
+                    sed -i "/root reboot/c0 13 * * * root reboot" /etc/crontab
                     #update git 10 minutes before reboot
-                    sed -i "/update git/c50 1 * * * root /home/savvy/savvy.sh update git" /etc/crontab
+                    sed -i "/update git/c50 12 * * * root /home/savvy/savvy.sh update git" /etc/crontab
                 fi
             fi
         fi
@@ -393,8 +401,8 @@ if [[ $1 == 'update' ]]; then
                     #otherwise proceed to wificleanup and reboot
                     else
                         #if there are more than 20(actually 16) stored networks, delete them and start over
-                        if [[ `echo $(nmcli -f NAME con show) | awk '{print NF}'` -gt 20 ]]; then
-                            #clean up wifi if total fields exceed 20
+                        if [[ `echo $(nmcli -f NAME con show) | awk '{print NF}'` -gt 25 ]]; then
+                            #clean up wifi if total fields exceed 25
                             wificleanup
                         fi
                         #reboot to show that customer_info was updated 
@@ -412,8 +420,8 @@ if [[ $1 == 'update' ]]; then
         #if customer_info is a non-empty file
         if [[ -s /home/savvy/customer_info ]]; then
             #if current timezone not the same as what is on timezone line of customer_info
-            if [[ $(timedatectl | grep Time | awk '{print $3}') != $(grep timezone /home/savvy/customer_info | awk '{print $2}') ]]; then
-            timedatectl set-timezone $(grep timezone /home/savvy/customer_info | awk '{print $2}' )
+            if [[ $(timedatectl | grep Time | awk '{print $3}') != $(grep timezone /home/savvy/customer_info | awk -F : '{print $2}') ]]; then
+            timedatectl set-timezone $(grep timezone /home/savvy/customer_info | awk -F : '{print $2}' )
             timedatectl set-ntp true
             fi
         fi

@@ -43,14 +43,18 @@ if [ "$INTERNET" = '' ]; then
 	fi
 else
 	#internet connection established-go to website
+
 	WIFICONNECTED=$(nmcli device | grep 'wifi ' | awk '{print $4}')
-	#CUSTWIFI=$(sed -n '/ssid/p' /home/savvy/customer_info | awk '{print $2}')
 	#might need to change the following section depending on how it works with the EMSETUP network
 	
 	if [[ "$WIFICONNECTED" = "EM_GUEST" ]]; then
 		#if we design a testing website for in-house QC, change the url here
 		URL="https://rmivfdfzp3.us-west-2.awsapprunner.com/"
-	else # [[ $WIFICONNECTED = $CUSTWIFI || $(nmcli device | grep ethernet | awk '{print $3}') = 'connected' ]]; then
+        #if network cable is plugged in, override EM_GUEST wifi connection (both can be active simultaneously)
+        if [[ $(nmcli device | grep ethernet | awk '{print $3}') = 'connected' ]]; then
+		    URL="https://rmivfdfzp3.us-west-2.awsapprunner.com/$(sed '1q' /home/savvy/.url 2>/dev/null)"
+        fi
+	else
 		#if connected to any other network, go to customer website
 		URL="https://rmivfdfzp3.us-west-2.awsapprunner.com/$(sed '1q' /home/savvy/.url 2>/dev/null)"
 	fi
