@@ -121,7 +121,7 @@ export LANGUAGE=en_US.UTF-8
 
 
 if [ "$(tty)" == "/dev/tty1" ]; then
-    #define startup functions in tty1
+    #define startup functions and variables in tty1
     . /home/savvy/savvy.sh startup
 
     if [ -f /home/savvy/firstrun ]; then

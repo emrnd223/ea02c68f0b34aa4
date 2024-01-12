@@ -11,8 +11,6 @@ xset s noblank
 
 nitrogen --set-centered emlogo.png
 
-#unclutter -idle 0 -root &
-
 #check for wifi/network status here; if result is '' there is no network
 NETWORK=`echo "$(nmcli device | grep 'wifi ' | awk '{print $3}') $(nmcli device | grep ethernet | awk '{print $3}')" | grep -w connected`
 #check for internet access (will equal some text if internet access is available)
@@ -29,8 +27,8 @@ if [[ "$NETWORK" != '' ]]; then
     done
 fi
 
-if [ "$INTERNET" = '' ]; then
-    #no internet connection-go to offline option
+#no internet connection-go to offline option
+if [[ "$INTERNET" = '' ]]; then
     #sleep so em splash screen stays visible for a few seconds before switching to offline message
     sleep 5s
     touch nobrowser
@@ -41,9 +39,8 @@ if [ "$INTERNET" = '' ]; then
         #display message to say network is not available
         nitrogen --set-centered offline.png
     fi
+#internet connection established-go to website
 else
-    #internet connection established-go to website
-
     WIFICONNECTED=$(nmcli device | grep 'wifi ' | awk '{print $4}')
     #might need to change the following section depending on how it works with the EMSETUP network
     
@@ -59,10 +56,6 @@ else
         URL="https://rmivfdfzp3.us-west-2.awsapprunner.com/$(sed '1q' /home/savvy/.url 2>/dev/null)"
     fi
     env MOZ_USE_XINPUT2=1 firefox-esr --kiosk --disable-pinch $URL &
-    wid=$(xdotool search --sync --onlyvisible --name firefox)
-    xdotool windowunmap $wid
-    sleep 15s
-    xdotool windowmap $wid
 fi
 
 exec matchbox-window-manager -use_titlebar no
