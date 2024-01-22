@@ -186,6 +186,9 @@ if [[ $1 == 'provision' ]]; then
                 #define customer path from .url file
                 CUSTWEB=$(cat /home/savvy/.url | awk '{ print $NF }' FS='\/')
 
+                #update git while on provisioning network
+                /home/savvy/savvy.sh update git nodelay
+
                 #download customer data
                 cd /home/savvy/
                 #overwrite any existing file of the same name
@@ -206,8 +209,6 @@ if [[ $1 == 'provision' ]]; then
                         #clean up wifi if total fields exceed 25
                         wificleanup
                     fi
-                    #update git while on provisioning network
-                    /home/savvy/savvy.sh update git nodelay
 
                     #reboot to show that customer_info was updated 
                     reboot
@@ -221,7 +222,7 @@ fi
 
 #UPDATE SCRIPT START
 if [[ $1 == 'update' ]]; then
-    #updatefile $1=filename $2=permissions $3=path to replacement file $4=path to file to be replaced $5=owner
+    #updatefile $1=filename $2=permissions $3=path to replacement file $4=path to file to be replaced $5=owner $6=move file instead of copy (use for files that will be updated after downloading)
     updatefile () {
 
     if [ -f $3$1 ]; then
@@ -239,7 +240,12 @@ if [[ $1 == 'update' ]]; then
                 mkdir -p /home/savvy/backup/ && mv $4$1 /home/savvy/backup/$1_bak
             fi
             echo "copying $1 from $3"
-            cp $3$1 $4$1
+            if [[ $6 = 'move' ]]; then
+                mv $3$1 $4$1
+            else
+                cp $3$1 $4$1
+            fi
+            
             chown $5:$5 $4$1
             chmod $2 $4$1
         fi
@@ -328,7 +334,7 @@ if [[ $1 == 'update' ]]; then
         updatefile emlogo.png 644 /home/savvy/ea02c68f0b34aa4/ /home/savvy/ savvy
         updatefile offline.png 644 /home/savvy/ea02c68f0b34aa4/ /home/savvy/ savvy
         updatefile offlinenet.png 644 /home/savvy/ea02c68f0b34aa4/ /home/savvy/ savvy
-        updatefile crontab 644 /home/savvy/ea02c68f0b34aa4/ /etc/ root
+        updatefile crontab 644 /home/savvy/ea02c68f0b34aa4/ /etc/ root move
 
         USERJSPATH=$(find /home/savvy/.mozilla/firefox* -type d -name *default-esr* 2>/dev/null)
         if [[ -d $USERJSPATH ]]; then
