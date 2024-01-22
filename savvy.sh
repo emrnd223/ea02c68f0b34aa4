@@ -248,6 +248,11 @@ if [[ $1 == 'update' ]]; then
             
             chown $5:$5 $4$1
             chmod $2 $4$1
+        #files are the same, move file to remove it from the repo directory
+        elif [[ $6 = 'move' ]]; then
+            mv $3$1 $4$1
+            chown $5:$5 $4$1
+            chmod $2 $4$1
         fi
     fi
     }
