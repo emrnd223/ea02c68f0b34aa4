@@ -399,10 +399,10 @@ if [[ $1 == 'update' ]]; then
                     if [[ $SLEEPSTARTHOUR =~ ^[0-9]+$ ]]; then
                         #check that integer is less than 24
                         if [[ $SLEEPSTARTHOUR -gt 23 ]]; then
-                            SLEEPSTARTHOUR=0
+                            SLEEPSTARTHOUR=12
                         fi
                     else
-                        SLEEPSTARTHOUR=0
+                        SLEEPSTARTHOUR=12
                     fi
 
                     SLEEPEND=$(jq .sleepEnd /home/savvy/customer_info | sed 's/^\"//; s/\"$//')
@@ -417,10 +417,10 @@ if [[ $1 == 'update' ]]; then
                     SLEEPENDHOUR=$(echo $SLEEPEND | cut -c 1-2)
                     if [[ $SLEEPENDHOUR =~ ^[0-9]+$ ]]; then
                         if [[ $SLEEPENDHOUR -gt 23 ]]; then
-                            SLEEPENDHOUR=0
+                            SLEEPENDHOUR=13
                         fi
                     else
-                        SLEEPENDHOUR=0
+                        SLEEPENDHOUR=13
                     fi
 
                     #update reboot time in crontab
