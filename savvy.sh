@@ -175,10 +175,11 @@ fi
 
 #PROVISIONING START
 if [[ $1 == 'provision' ]]; then
-    . /home/savvy/savvy.sh startup
+    SSID2="$(jq .ssid /home/savvy/customer_info | sed 's/^\"//; s/\"$//')" #customer wifi ssid
     CURWIFI=$(nmcli con show | sed '2q;d' | awk -F "  " '{print $1}')
     #don't update json if SSID2 is already connected (it will be done automatically at next reboot)
     if [[ "$CURWIFI" != "$SSID2" ]]; then
+        SSID3="EMSETUP" #customer setup wifi
         #if current network is EMSETUP
         if [[ "$CURWIFI" = "$SSID3" ]]; then
             if [[ -s /home/savvy/.url ]]; then
@@ -197,10 +198,11 @@ if [[ $1 == 'provision' ]]; then
                 #remove customer_info file if it's empty
                 if [[ ! -s /home/savvy/customer_info ]]; then
                     rm /home/savvy/customer_info
-                #otherwise proceed to wificleanup and reboot
+                #otherwise proceed to wificleanup, git update, and reboot
                 else
                     #if there are more than 25 items in list (wifi SSIDs with spaces will be counted as multiple items), delete all wifi profiles and start over
                     if [[ `echo $(nmcli -f NAME con show) | awk '{print NF}'` -gt 25 ]]; then
+                        . /home/savvy/savvy.sh startup
                         #clean up wifi if total fields exceed 25
                         wificleanup
                     fi
