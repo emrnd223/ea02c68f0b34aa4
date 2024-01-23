@@ -378,6 +378,7 @@ if [[ $1 == 'update' ]]; then
             #remove customer_info file if it's empty
             if [[ ! -s /home/savvy/customer_info ]]; then
                 rm /home/savvy/customer_info
+
             #if not empty, update screen sleep schedule
             else
                 #define local variables for sleep schedule
@@ -385,69 +386,90 @@ if [[ $1 == 'update' ]]; then
                 if [[ $SLEEPENABLED = 'true' ]]; then
 
                     SLEEPSTART=$(jq .sleepStart /home/savvy/customer_info | sed 's/^\"//; s/\"$//')
-                    SLEEPSTARTMIN=$(echo $SLEEPSTART | cut -c 3-4)
+                    #check length of SLEEPSTART and select correct digits
+                    if [[ ${#SLEEPSTART} = 4 ]]; then
+                        SLEEPSTARTMIN=$(echo $SLEEPSTART | cut -c 3-4)
+                        SLEEPSTARTHOUR=$(echo $SLEEPSTART | cut -c 1-2)
+                    elif [[ ${#SLEEPSTART} = 3 ]]; then
+                        SLEEPSTARTMIN=$(echo $SLEEPSTART | cut -c 2-3)
+                        SLEEPSTARTHOUR=$(echo $SLEEPSTART | cut -c 1)
+                    fi
                     #check that extracted digits are an integer 
                     if [[ $SLEEPSTARTMIN =~ ^[0-9]+$ ]]; then
+                        INVALIDSLEEP=''
                         #check that integer is less than 60
                         if [[ $SLEEPSTARTMIN -gt 59 ]]; then
-                            SLEEPSTARTMIN=0
+                            INVALIDSLEEP=true
                         fi
+                    #time in json is not an integer
                     else
-                        SLEEPSTARTMIN=0
+                        INVALIDSLEEP=true
                     fi
-                    SLEEPSTARTHOUR=$(echo $SLEEPSTART | cut -c 1-2)
                     if [[ $SLEEPSTARTHOUR =~ ^[0-9]+$ ]]; then
                         #check that integer is less than 24
                         if [[ $SLEEPSTARTHOUR -gt 23 ]]; then
-                            SLEEPSTARTHOUR=12
+                            INVALIDSLEEP=true
                         fi
                     else
-                        SLEEPSTARTHOUR=12
+                        INVALIDSLEEP=true
                     fi
 
                     SLEEPEND=$(jq .sleepEnd /home/savvy/customer_info | sed 's/^\"//; s/\"$//')
-                    SLEEPENDMIN=$(echo $SLEEPEND | cut -c 3-4)
+                    #check length of SLEEPEND and select correct digits
+                    if [[ ${#SLEEPEND} = 4 ]]; then
+                        SLEEPENDMIN=$(echo $SLEEPEND | cut -c 3-4)
+                        SLEEPENDHOUR=$(echo $SLEEPEND | cut -c 1-2)
+                    elif [[ ${#SLEEPEND} = 3 ]]; then
+                        SLEEPENDMIN=$(echo $SLEEPEND | cut -c 2-3)
+                        SLEEPENDHOUR=$(echo $SLEEPEND | cut -c 1)
+                    fi
+                    #check that extracted digits are an integer 
                     if [[ $SLEEPENDMIN =~ ^[0-9]+$ ]]; then
                         if [[ $SLEEPENDMIN -gt 59 ]]; then
-                            SLEEPENDMIN=0
+                            INVALIDSLEEP=true
                         fi
+                    #time in json is not an integer
                     else
-                        SLEEPENDMIN=0
+                        INVALIDSLEEP=true
                     fi
-                    SLEEPENDHOUR=$(echo $SLEEPEND | cut -c 1-2)
                     if [[ $SLEEPENDHOUR =~ ^[0-9]+$ ]]; then
                         if [[ $SLEEPENDHOUR -gt 23 ]]; then
-                            SLEEPENDHOUR=13
+                            INVALIDSLEEP=true
                         fi
                     else
-                        SLEEPENDHOUR=13
+                        INVALIDSLEEP=true
                     fi
 
-                    #update reboot time in crontab
-                    sed -i "/root reboot/c`echo $SLEEPENDMIN` `echo $SLEEPENDHOUR` * * * root reboot" /etc/crontab
-                    sed -i "/savvy echo/c`echo $SLEEPENDMIN` `echo $SLEEPENDHOUR` * * * savvy echo \"System reset at \$(date)\" >> cron_last_reset" /etc/crontab
-                    #redefine variables for a git update 10 minutes before reset
-                    if [[ $SLEEPENDMIN -lt 10 ]]; then
-                        if [[ $SLEEPENDHOUR -gt 0 ]]; then
-                            SLEEPENDHOUR=$(($SLEEPENDHOUR-1))
-                        else #hour is zero
-                            SLEEPENDHOUR=23
+                    #sleep times are valid, update crontab
+                    if [[ $INVALIDSLEEP != 'true' ]]; then
+                        #update reboot time in crontab
+                        sed -i "/root reboot/c`echo $SLEEPENDMIN` `echo $SLEEPENDHOUR` * * * root reboot" /etc/crontab
+                        sed -i "/savvy echo/c`echo $SLEEPENDMIN` `echo $SLEEPENDHOUR` * * * savvy echo \"System reset at \$(date)\" >> cron_last_reset" /etc/crontab
+                        #redefine variables for a git update 10 minutes before reset
+                        if [[ $SLEEPENDMIN -lt 10 ]]; then
+                            if [[ $SLEEPENDHOUR -gt 0 ]]; then
+                                SLEEPENDHOUR=$(($SLEEPENDHOUR-1))
+                            else #hour is zero
+                                SLEEPENDHOUR=23
+                            fi
+                            SLEEPENDMIN=$(($SLEEPENDMIN+50))
+                        else
+                            SLEEPENDMIN=$(($SLEEPENDMIN-10))
                         fi
-                        SLEEPENDMIN=$(($SLEEPENDMIN+50))
-                    else
-                        SLEEPENDMIN=$(($SLEEPENDMIN-10))
+                        sed -i "/update git/c$SLEEPENDMIN $SLEEPENDHOUR * * * root /home/savvy/savvy.sh update git" /etc/crontab
+    
+                        #if sleep start hasn't been set up in crontab, set it up
+                        if [[ ! $(sed -n '/sleep start/p' /etc/crontab) ]]; then
+                            sed -i "/provision/a`echo $SLEEPSTARTMIN` `echo $SLEEPSTARTHOUR` * * * savvy /home/savvy/savvy.sh sleep start" /etc/crontab
+                        #if sleep start already exists in crontab, update it
+                        else
+                            sed -i "/sleep start/c`echo $SLEEPSTARTMIN` `echo $SLEEPSTARTHOUR` * * * savvy /home/savvy/savvy.sh sleep start" /etc/crontab
+                        fi
                     fi
-                    sed -i "/update git/c$SLEEPENDMIN $SLEEPENDHOUR * * * root /home/savvy/savvy.sh update git" /etc/crontab
+                fi
 
-                    #if sleep start hasn't been set up in crontab, set it up
-                    if [[ ! $(sed -n '/sleep start/p' /etc/crontab) ]]; then
-                        sed -i "/provision/a`echo $SLEEPSTARTMIN` `echo $SLEEPSTARTHOUR` * * * savvy /home/savvy/savvy.sh sleep start" /etc/crontab
-                    #if sleep start already exists in crontab, update it
-                    else
-                        sed -i "/sleep start/c`echo $SLEEPSTARTMIN` `echo $SLEEPSTARTHOUR` * * * savvy /home/savvy/savvy.sh sleep start" /etc/crontab
-                    fi
-
-                else
+                #if sleep is not enabled, or there is an error in the sleep start/end values, disable sleep
+                if [[ $SLEEPENABLED != 'true' || $INVALIDSLEEP = 'true' ]]; then 
                     #sleep disabled-comment it out in crontab unless it already is
                     if [[ $(sed -n '/sleep start/p' /etc/crontab | cut -c 1) != \# ]]; then
                         sed -i '/sleep/s/^/#/' /etc/crontab
