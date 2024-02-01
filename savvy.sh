@@ -51,12 +51,13 @@ if [[ $1 == 'startup' ]]; then
 
     setupwifi () {
         #add SSID and password information to network manager
-        nmcli con add con-name "$1" ifname $DONGLE type wifi ssid "$1" wifi-sec.key-mgmt wpa-psk wifi-sec.psk "$2"
+        #$1=ssid/profile name $2=password $3=autoconnect priority (-999 to 999, higher number is higher priority)
+        nmcli con add con-name "$1" ifname $DONGLE type wifi ssid "$1" wifi-sec.key-mgmt wpa-psk wifi-sec.psk "$2" connection.autoconnect-priority "$3"
 
         sleep 2
 
-        #if third argument exists, connect to this wifi immediately (may not work reliably with dongle)
-        if [ $3 ]; then
+        #if fourth argument exists, connect to this wifi immediately (may not work reliably with dongle)
+        if [ $4 ]; then
             nmcli con up "$1"
         fi
     }
@@ -98,49 +99,63 @@ if [[ $1 == 'network_status' ]]; then
         nmcli con show | grep wifi | awk -F "  " '{print $1}' | while read profile; do
             IFNAMEPROFILE="$(nmcli con show "$profile" | grep interface-name | awk '{print $2}')"
             if [[ $DONGLE != $IFNAMEPROFILE ]]; then
+                #get priority from current profile or manually define priority if profile is one of the three primary ssids
+                if [[ "$profile" = "$SSID2" ]]; then
+                    PRIORITY=200
+                elif [[ "$profile" = "$SSID3" ]]; then
+                    PRIORITY=100
+                elif [[ "$profile" = "$SSID1" ]]; then
+                    PRIORITY=0
+                else
+                    PRIORITY=`nmcli con show "$profile" | grep autoconnect-priority | awk '{print $2}'`
+                    #for older wifi profiles, set priority lower than current SSID2
+                    if [[ $PRIORITY -ge 200 ]]; then
+                        PRIORITY=150
+                    fi
+                fi
+
                 #get password from profile
                 PASSWORD=`nmcli con show "$profile" --show-secrets | grep wireless-security.psk: | awk -F "  " '{print $NF}' | sed 's/^ *//'`
                 echo "dongle wrongle $profile"
                 #remove existing wifi profile
                 nmcli con delete "$profile"
 
-                #add new wifi profile with new dongle
-                setupwifi "$profile" "$PASSWORD"
+                #add new wifi profile with new dongle ifname
+                setupwifi "$profile" "$PASSWORD" $PRIORITY
                 sleep 1
-                #connect to profile if SSID is broadcasting
-                if [[ "$(nmcli device wifi list | grep '$profile')" ]]; then
-                    nmcli con up "$profile"
-                    sleep 1
-                fi
             fi
         done
 
         #check that all primary SSIDs are listed by network manager and set them up if not
-        if [[ $(nmcli con show | grep "$SSID1") ]]; then
-            #check that password is correct
-            if [[ $(nmcli con show "$SSID1" --show-secrets | grep wireless-security.psk: | awk -F 'psk: *' '{print $2}') != "$PASS1" ]]; then
-                setupwifi "$SSID1" "$PASS1"
+        if [[ "$SSID2" ]]; then
+            if [[ $(nmcli con show | grep "$SSID2") ]]; then
+                #check that password is correct
+                if [[ $(nmcli con show "$SSID2" --show-secrets | grep wireless-security.psk: | awk -F 'psk: *' '{print $2}') != "$PASS2" ]]; then
+                    setupwifi "$SSID2" "$PASS2" 200
+                fi
+            else
+                setupwifi "$SSID2" "$PASS2" 200
             fi
-        else
-            setupwifi "$SSID1" "$PASS1"
         fi
 
         if [[ $(nmcli con show | grep "$SSID3") ]]; then
             if [[ $(nmcli con show "$SSID3" --show-secrets | grep wireless-security.psk: | awk -F 'psk: *' '{print $2}') != "$PASS3" ]]; then
-                setupwifi "$SSID3" "$PASS3"
+                nmcli con delete "$SSID3"
+                sleep 1
+                setupwifi "$SSID3" "$PASS3" 100
             fi
         else
-            setupwifi "$SSID3" "$PASS3"
+            setupwifi "$SSID3" "$PASS3" 100
         fi
 
-        if [[ "$SSID2" ]]; then
-            if [[ $(nmcli con show | grep "$SSID2") ]]; then
-                if [[ $(nmcli con show "$SSID2" --show-secrets | grep wireless-security.psk: | awk -F 'psk: *' '{print $2}') != "$PASS2" ]]; then
-                    setupwifi "$SSID2" "$PASS2"
-                fi
-            else
-                setupwifi "$SSID2" "$PASS2"
+        if [[ $(nmcli con show | grep "$SSID1") ]]; then
+            if [[ $(nmcli con show "$SSID1" --show-secrets | grep wireless-security.psk: | awk -F 'psk: *' '{print $2}') != "$PASS1" ]]; then
+                nmcli con delete "$SSID1"
+                sleep 1
+                setupwifi "$SSID1" "$PASS1" 0
             fi
+        else
+            setupwifi "$SSID1" "$PASS1" 0
         fi
 
         #check if startx didn't launch firefox due to no available network
@@ -170,6 +185,15 @@ if [[ $1 == 'network_status' ]]; then
         if [[ "$INTERNET" != '' ]]; then
             reboot
         fi
+#    else
+#        #network connected-check for best priority SSID
+#        ACTIVEWIFI=$(nmcli con | sed '2q;d' | grep ' wifi ' | awk -F "   *" '{print $2}')
+#        if [[ $ACTIVEWIFI ]]; then
+#            ACTIVEWIFIPRIORITY=$(nmcli con show $ACTIVEWIFI | grep autoconnect-priority | awk '{print $2}')
+#            if [[ $ACTIVEWIFIPRIORITY != 200 && $(nmcli device wifi list | grep "$SSID2") ]]; then
+#                nmcli con up $SSID2
+#            fi
+#        fi
     fi
 fi
 #NETWORK CHECK END
