@@ -309,7 +309,7 @@ if [[ $1 == 's3_upload' ]]; then
     echo "ssid: $(jq .ssid /home/savvy/customer_info)" >> "/home/savvy/$FILENAME"
     echo "ssid_pass: $(jq .wifiPassword /home/savvy/customer_info)" >> "/home/savvy/$FILENAME"
     echo -e "cpu_temp: \n$(paste -sd , /home/savvy/hourly/cputemp)" >> "/home/savvy/$FILENAME"
-    echo -e "cpu_us_sy_id: \n$(cat cpu)" >> "/home/savvy/$FILENAME"
+    echo -e "cpu_us_sy_id: \n$(cat /home/savvy/hourly/cpu)" >> "/home/savvy/$FILENAME"
     echo -e "ram_free: \n$(paste -sd , /home/savvy/hourly/ramfree)" >> "/home/savvy/$FILENAME"
     echo -e "disk_free: \n$(paste -sd , /home/savvy/hourly/diskfree)" >> "/home/savvy/$FILENAME"
     CURRENTLAN=$(nmcli device | grep ethernet | awk '{print $1}')
